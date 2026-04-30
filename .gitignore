@@ -1,0 +1,63 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Build/cache/deps
+coverage/
+.cache/
+.temp/
+.tmp/
+.turbo/
+.parcel-cache/
+.eslintcache
+vendor/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Credentials/config with sensitive data
+credentials.json
+secrets.json
+config.local.*
+*.secret
+
+# OS and temp files
+Thumbs.db
+Desktop.ini
