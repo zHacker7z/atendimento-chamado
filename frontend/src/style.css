@@ -23,6 +23,7 @@ body {
   font-family: Inter, Arial, Helvetica, sans-serif;
   background: var(--bg);
   color: var(--text);
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
 #app {
@@ -58,6 +59,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
 }
 
 .section-space {
@@ -76,6 +78,7 @@ body {
   border-radius: 14px;
   padding: 18px;
   box-shadow: 0 10px 24px rgba(9, 29, 68, 0.06);
+  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 form.card,
@@ -104,6 +107,7 @@ button {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid #c5d0de;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 button {
@@ -130,10 +134,6 @@ textarea {
   min-height: 90px;
 }
 
-.tabela-wrapper {
-  overflow-x: auto;
-}
-
 .filtros {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -141,10 +141,12 @@ textarea {
   margin-bottom: 14px;
 }
 
-table {
+.chamados-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   background: var(--card-bg);
+  transition: background-color 0.35s ease;
 }
 
 th,
@@ -152,7 +154,8 @@ td {
   border-bottom: 1px solid #e8edf4;
   padding: 10px 8px;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
   vertical-align: top;
 }
 
@@ -167,6 +170,24 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.table-hint {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.row-clickable {
+  cursor: pointer;
+}
+
+.row-clickable:hover {
+  background: rgba(31, 113, 236, 0.08);
+}
+
+.col-descricao {
+  max-width: 0;
 }
 
 .paginacao {
@@ -189,6 +210,7 @@ th {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
+  transition: background-color 0.35s ease, border-color 0.35s ease;
 }
 
 .kpi-card h3 {
@@ -294,6 +316,10 @@ th {
   border-radius: 14px;
   padding: 18px;
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28);
+}
+
+.modal-large {
+  width: min(760px, 94vw);
 }
 
 .modal-card h3 {

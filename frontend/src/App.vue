@@ -11,6 +11,7 @@ import {
   listarPrioridades,
   listarSetores,
   obterIndicadores,
+  salvarSolucaoChamado,
 } from './services/api';
 
 const appName = import.meta.env.VITE_APP_NAME ?? 'Sistema de Controle de Atendimentos';
@@ -41,6 +42,12 @@ const indicadores = reactive({
 const solucaoPorChamado = reactive({});
 const motivoCancelamentoPorChamado = reactive({});
 const temaEscuro = ref(false);
+const detalheModal = reactive({
+  show: false,
+  chamado: null,
+  solucao: '',
+  motivo: '',
+});
 const confirmModal = reactive({
   show: false,
   title: '',
@@ -71,6 +78,7 @@ const loadingState = reactive({
   checkin: {},
   checkout: {},
   cancelar: {},
+  solucao: {},
 });
 
 const semChamados = computed(() => !loading.value && chamados.value.length === 0);
@@ -102,6 +110,20 @@ function abrirConfirmacao(title, text, action) {
   confirmModal.title = title;
   confirmModal.text = text;
   confirmModal.action = action;
+}
+
+function abrirDetalheChamado(chamado) {
+  detalheModal.show = true;
+  detalheModal.chamado = { ...chamado };
+  detalheModal.solucao = chamado.solucao_breve ?? '';
+  detalheModal.motivo = '';
+}
+
+function fecharDetalheChamado() {
+  detalheModal.show = false;
+  detalheModal.chamado = null;
+  detalheModal.solucao = '';
+  detalheModal.motivo = '';
 }
 
 function fecharConfirmacao() {
@@ -146,6 +168,12 @@ async function carregarDados() {
     chamados.value = chamadosResposta.data ?? [];
     Object.assign(metaChamados, chamadosResposta.meta ?? {});
     Object.assign(indicadores, indicadoresData ?? {});
+    if (detalheModal.show && detalheModal.chamado) {
+      const atualizado = chamados.value.find((item) => item.id === detalheModal.chamado.id);
+      if (atualizado) {
+        detalheModal.chamado = { ...atualizado };
+      }
+    }
   } catch (e) {
     mostrarFeedback(e.message, 'error');
   } finally {
@@ -249,9 +277,30 @@ async function fazerCheckIn(id) {
   }
 }
 
+async function salvarSolucao(id, textoSolucao) {
+  const solucao = (textoSolucao ?? '').trim();
+  if (solucao.length < 5) {
+    mostrarFeedback('A solução deve ter ao menos 5 caracteres.', 'error');
+    return;
+  }
+  loadingState.solucao[id] = true;
+  try {
+    await salvarSolucaoChamado(id, { solucao_breve: solucao });
+    mostrarFeedback('Solução salva com sucesso.');
+    await carregarDados();
+  } catch (e) {
+    mostrarFeedback(e.message, 'error');
+  } finally {
+    loadingState.solucao[id] = false;
+  }
+}
+
 async function fazerCheckOut(id) {
   const executar = async () => {
-    const solucao = (solucaoPorChamado[id] ?? '').trim();
+    const solucaoFonte = detalheModal.show && detalheModal.chamado?.id === id
+      ? detalheModal.solucao
+      : solucaoPorChamado[id];
+    const solucao = (solucaoFonte ?? '').trim();
     if (solucao.length < 5) {
       mostrarFeedback('Descreva a solução com ao menos 5 caracteres.', 'error');
       return;
@@ -275,7 +324,10 @@ async function fazerCheckOut(id) {
 
 async function cancelar(id) {
   const executar = async () => {
-    const motivo = (motivoCancelamentoPorChamado[id] ?? '').trim();
+    const motivoFonte = detalheModal.show && detalheModal.chamado?.id === id
+      ? detalheModal.motivo
+      : motivoCancelamentoPorChamado[id];
+    const motivo = (motivoFonte ?? '').trim();
     if (motivo.length < 5) {
       mostrarFeedback('Informe um motivo de cancelamento com ao menos 5 caracteres.', 'error');
       return;
@@ -356,7 +408,7 @@ onMounted(() => {
       <p>Controle de SLA, status e fluxo de atendimento em um único painel.</p>
       <button type="button" class="theme-toggle" @click="alternarTema">
         <span aria-hidden="true">{{ temaEscuro ? '☀️' : '🌙' }}</span>
-        {{ temaEscuro ? 'Modo claro' : 'Modo dark' }}
+        {{ temaEscuro ? 'Modo claro' : 'Modo escuro' }}
       </button>
     </header>
 
@@ -475,26 +527,28 @@ onMounted(() => {
         <button type="button" @click="limparFiltros">Limpar</button>
       </div>
 
-      <div class="tabela-wrapper">
-        <table>
+      <div class="table-hint">Dê double-click em uma linha para abrir os detalhes e ações.</div>
+      <table class="chamados-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Setor</th>
-              <th>Prioridade</th>
+              <th>Descrição</th>
+              <th>Setor/Prioridade</th>
               <th>Status</th>
               <th>SLA (h)</th>
               <th>Abertura</th>
-              <th>Início</th>
-              <th>Finalização</th>
-              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="chamado in chamados" :key="chamado.id">
+            <tr
+              v-for="chamado in chamados"
+              :key="chamado.id"
+              class="row-clickable"
+              @dblclick="abrirDetalheChamado(chamado)"
+            >
               <td>{{ chamado.id }}</td>
-              <td>{{ chamado.setor_nome }}</td>
-              <td>{{ chamado.prioridade_descricao }}</td>
+              <td class="col-descricao">{{ chamado.descricao_problema }}</td>
+              <td>{{ chamado.setor_nome }} / {{ chamado.prioridade_descricao }}</td>
               <td>
                 <span class="status-chip" :class="classeStatus(chamado.status)">
                   {{ chamado.status }}
@@ -509,50 +563,12 @@ onMounted(() => {
                 </span>
               </td>
               <td>{{ formatarData(chamado.data_abertura) }}</td>
-              <td>{{ formatarData(chamado.data_inicio_atendimento) }}</td>
-              <td>{{ formatarData(chamado.data_finalizacao) }}</td>
-              <td class="acoes">
-                <button
-                  type="button"
-                  @click="fazerCheckIn(chamado.id)"
-                  :disabled="chamado.status !== 'Aberto'"
-                >
-                  {{ loadingState.checkin[chamado.id] ? 'Iniciando...' : 'Check-in' }}
-                </button>
-                <input
-                  v-model="solucaoPorChamado[chamado.id]"
-                  type="text"
-                  placeholder="Solução breve"
-                  :disabled="chamado.status !== 'Em Atendimento'"
-                />
-                <button
-                  type="button"
-                  @click="fazerCheckOut(chamado.id)"
-                  :disabled="chamado.status !== 'Em Atendimento' || loadingState.checkout[chamado.id]"
-                >
-                  {{ loadingState.checkout[chamado.id] ? 'Finalizando...' : 'Check-out' }}
-                </button>
-                <input
-                  v-model="motivoCancelamentoPorChamado[chamado.id]"
-                  type="text"
-                  placeholder="Motivo cancelamento"
-                  :disabled="!['Aberto', 'Em Atendimento'].includes(chamado.status)"
-                />
-                <button
-                  type="button"
-                  @click="cancelar(chamado.id)"
-                  :disabled="!['Aberto', 'Em Atendimento'].includes(chamado.status) || loadingState.cancelar[chamado.id]"
-                >
-                  {{ loadingState.cancelar[chamado.id] ? 'Cancelando...' : 'Cancelar' }}
-                </button>
-              </td>
             </tr>
             <tr v-if="semChamados">
-              <td colspan="9">Nenhum chamado cadastrado.</td>
+              <td colspan="6">Nenhum chamado cadastrado.</td>
             </tr>
           </tbody>
-        </table>
-      </div>
+      </table>
       <div class="paginacao">
         <button type="button" @click="paginaAnterior" :disabled="metaChamados.page <= 1">Anterior</button>
         <span>Página {{ metaChamados.page }} de {{ Math.max(metaChamados.total_pages, 1) }}</span>
@@ -566,6 +582,71 @@ onMounted(() => {
         </button>
       </div>
     </section>
+
+    <div v-if="detalheModal.show && detalheModal.chamado" class="modal-backdrop">
+      <div class="modal-card modal-large">
+        <h3>Chamado #{{ detalheModal.chamado.id }}</h3>
+        <p><strong>Problema:</strong> {{ detalheModal.chamado.descricao_problema }}</p>
+        <p>
+          <strong>Status:</strong>
+          <span class="status-chip" :class="classeStatus(detalheModal.chamado.status)">
+            {{ detalheModal.chamado.status }}
+          </span>
+        </p>
+        <p><strong>Setor:</strong> {{ detalheModal.chamado.setor_nome }}</p>
+        <p><strong>Prioridade:</strong> {{ detalheModal.chamado.prioridade_descricao }}</p>
+        <p><strong>Abertura:</strong> {{ formatarData(detalheModal.chamado.data_abertura) }}</p>
+        <p><strong>Início:</strong> {{ formatarData(detalheModal.chamado.data_inicio_atendimento) }}</p>
+        <p><strong>Finalização:</strong> {{ formatarData(detalheModal.chamado.data_finalizacao) }}</p>
+
+        <label>Solução</label>
+        <textarea
+          v-model="detalheModal.solucao"
+          placeholder="Descreva a solução do chamado"
+          :disabled="detalheModal.chamado.status === 'Cancelado'"
+        />
+
+        <label>Motivo de cancelamento</label>
+        <input
+          v-model="detalheModal.motivo"
+          type="text"
+          placeholder="Informe o motivo (caso cancele)"
+          :disabled="!['Aberto', 'Em Atendimento'].includes(detalheModal.chamado.status)"
+        />
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" @click="fecharDetalheChamado">Fechar</button>
+          <button
+            type="button"
+            @click="salvarSolucao(detalheModal.chamado.id, detalheModal.solucao)"
+            :disabled="loadingState.solucao[detalheModal.chamado.id] || detalheModal.chamado.status === 'Cancelado'"
+          >
+            {{ loadingState.solucao[detalheModal.chamado.id] ? 'Salvando...' : 'Salvar solução' }}
+          </button>
+          <button
+            type="button"
+            @click="fazerCheckIn(detalheModal.chamado.id)"
+            :disabled="detalheModal.chamado.status !== 'Aberto' || loadingState.checkin[detalheModal.chamado.id]"
+          >
+            {{ loadingState.checkin[detalheModal.chamado.id] ? 'Iniciando...' : 'Iniciar atendimento' }}
+          </button>
+          <button
+            type="button"
+            @click="fazerCheckOut(detalheModal.chamado.id)"
+            :disabled="detalheModal.chamado.status !== 'Em Atendimento' || loadingState.checkout[detalheModal.chamado.id]"
+          >
+            {{ loadingState.checkout[detalheModal.chamado.id] ? 'Finalizando...' : 'Finalizar' }}
+          </button>
+          <button
+            type="button"
+            @click="cancelar(detalheModal.chamado.id)"
+            :disabled="!['Aberto', 'Em Atendimento'].includes(detalheModal.chamado.status) || loadingState.cancelar[detalheModal.chamado.id]"
+          >
+            {{ loadingState.cancelar[detalheModal.chamado.id] ? 'Cancelando...' : 'Cancelar' }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div v-if="confirmModal.show" class="modal-backdrop">
       <div class="modal-card">

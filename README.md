@@ -97,3 +97,4 @@ npm run dev
 - `POST /chamados/{id}/iniciar`
 - `POST /chamados/{id}/finalizar`
 - `POST /chamados/{id}/cancelar`
+- `POST /chamados/{id}/solucao`

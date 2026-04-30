@@ -91,3 +91,7 @@ export function finalizarChamado(id, data) {
 export function cancelarChamado(id, data) {
   return request(`/chamados/${id}/cancelar`, { method: 'POST', body: JSON.stringify(data) });
 }
+
+export function salvarSolucaoChamado(id, data) {
+  return request(`/chamados/${id}/solucao`, { method: 'POST', body: JSON.stringify(data) });
+}

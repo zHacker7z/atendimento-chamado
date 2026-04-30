@@ -369,6 +369,42 @@ try {
         exit;
     }
 
+    if ($method === 'POST' && preg_match('#^/chamados/(\d+)/solucao$#', $path, $matches) === 1) {
+        $id = (int)$matches[1];
+        $body = readJsonBody();
+        $solucao = trim((string)($body['solucao_breve'] ?? ''));
+
+        if (mb_strlen($solucao) < 5) {
+            badRequest('A solucao_breve deve ter ao menos 5 caracteres.');
+        }
+
+        $stmt = $pdo->prepare('SELECT id, status FROM chamados WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $chamado = $stmt->fetch();
+
+        if (!$chamado) {
+            notFound('Chamado não encontrado.');
+        }
+
+        if ($chamado['status'] === 'Cancelado') {
+            badRequest('Não é possível alterar solução de chamado cancelado.');
+        }
+
+        $update = $pdo->prepare(
+            'UPDATE chamados
+             SET solucao_breve = :solucao
+             WHERE id = :id
+             RETURNING id, status, solucao_breve'
+        );
+        $update->execute([
+            ':id' => $id,
+            ':solucao' => $solucao,
+        ]);
+
+        Response::json(['data' => $update->fetch()]);
+        exit;
+    }
+
     notFound();
 } catch (PDOException $exception) {
     $code = (int)$exception->getCode();
