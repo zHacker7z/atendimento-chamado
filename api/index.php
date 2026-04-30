@@ -214,6 +214,29 @@ try {
         exit;
     }
 
+    if ($method === 'GET' && $path === '/chamados/indicadores') {
+        $stmt = $pdo->query(
+            "SELECT
+                COUNT(*) FILTER (WHERE status = 'Aberto') AS total_aberto,
+                COUNT(*) FILTER (WHERE status = 'Em Atendimento') AS total_em_atendimento,
+                COUNT(*) FILTER (
+                    WHERE status IN ('Aberto', 'Em Atendimento')
+                    AND EXTRACT(EPOCH FROM (
+                        COALESCE(data_finalizacao, NOW()) -
+                        COALESCE(data_inicio_atendimento, data_abertura)
+                    )) / 3600.0 > (
+                        SELECT tempo_estimado_horas
+                        FROM prioridades p
+                        WHERE p.id = chamados.prioridade_id
+                    )
+                ) AS total_atrasados
+            FROM chamados"
+        );
+
+        Response::json(['data' => $stmt->fetch()]);
+        exit;
+    }
+
     if ($method === 'POST' && $path === '/chamados') {
         $body = readJsonBody();
         $setorId = (int)($body['setor_id'] ?? 0);

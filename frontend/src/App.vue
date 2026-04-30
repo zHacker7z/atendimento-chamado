@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import {
   abrirChamado,
   cancelarChamado,
@@ -10,11 +10,17 @@ import {
   listarChamados,
   listarPrioridades,
   listarSetores,
+  obterIndicadores,
 } from './services/api';
 
+const appName = import.meta.env.VITE_APP_NAME ?? 'Sistema de Controle de Atendimentos';
+
 const loading = ref(false);
-const erro = ref('');
-const mensagem = ref('');
+const feedback = reactive({
+  show: false,
+  type: 'success',
+  text: '',
+});
 
 const setores = ref([]);
 const prioridades = ref([]);
@@ -27,8 +33,21 @@ const metaChamados = reactive({
   order_by: 'data_abertura',
   order_dir: 'DESC',
 });
+const indicadores = reactive({
+  total_aberto: 0,
+  total_em_atendimento: 0,
+  total_atrasados: 0,
+});
 const solucaoPorChamado = reactive({});
 const motivoCancelamentoPorChamado = reactive({});
+const temaEscuro = ref(false);
+const confirmModal = reactive({
+  show: false,
+  title: '',
+  text: '',
+  loading: false,
+  action: null,
+});
 
 const filtros = reactive({
   status: '',
@@ -44,16 +63,71 @@ const novoChamado = reactive({
   descricao_problema: '',
 });
 
-function limparFeedback() {
-  erro.value = '';
-  mensagem.value = '';
+const loadingState = reactive({
+  setor: false,
+  prioridade: false,
+  chamado: false,
+  filtro: false,
+  checkin: {},
+  checkout: {},
+  cancelar: {},
+});
+
+const semChamados = computed(() => !loading.value && chamados.value.length === 0);
+
+let feedbackTimer = null;
+
+function mostrarFeedback(texto, tipo = 'success') {
+  if (feedbackTimer) clearTimeout(feedbackTimer);
+  feedback.show = true;
+  feedback.type = tipo;
+  feedback.text = texto;
+  feedbackTimer = setTimeout(() => {
+    feedback.show = false;
+  }, 2800);
+}
+
+function aplicarTema() {
+  document.documentElement.setAttribute('data-theme', temaEscuro.value ? 'dark' : 'light');
+  localStorage.setItem('tema-atendimento', temaEscuro.value ? 'dark' : 'light');
+}
+
+function alternarTema() {
+  temaEscuro.value = !temaEscuro.value;
+  aplicarTema();
+}
+
+function abrirConfirmacao(title, text, action) {
+  confirmModal.show = true;
+  confirmModal.title = title;
+  confirmModal.text = text;
+  confirmModal.action = action;
+}
+
+function fecharConfirmacao() {
+  if (confirmModal.loading) return;
+  confirmModal.show = false;
+  confirmModal.title = '';
+  confirmModal.text = '';
+  confirmModal.action = null;
+}
+
+async function confirmarAcao() {
+  if (!confirmModal.action) return;
+  confirmModal.loading = true;
+  try {
+    await confirmModal.action();
+    confirmModal.show = false;
+  } finally {
+    confirmModal.loading = false;
+    confirmModal.action = null;
+  }
 }
 
 async function carregarDados() {
   loading.value = true;
-  limparFeedback();
   try {
-    const [setoresData, prioridadesData, chamadosResposta] = await Promise.all([
+    const [setoresData, prioridadesData, chamadosResposta, indicadoresData] = await Promise.all([
       listarSetores(),
       listarPrioridades(),
       listarChamados({
@@ -65,104 +139,162 @@ async function carregarDados() {
         order_by: metaChamados.order_by,
         order_dir: metaChamados.order_dir,
       }),
+      obterIndicadores(),
     ]);
     setores.value = setoresData;
     prioridades.value = prioridadesData;
     chamados.value = chamadosResposta.data ?? [];
     Object.assign(metaChamados, chamadosResposta.meta ?? {});
+    Object.assign(indicadores, indicadoresData ?? {});
   } catch (e) {
-    erro.value = e.message;
+    mostrarFeedback(e.message, 'error');
   } finally {
     loading.value = false;
+    loadingState.filtro = false;
   }
 }
 
 function aplicarFiltros() {
+  loadingState.filtro = true;
   metaChamados.page = 1;
   carregarDados();
 }
 
 async function salvarSetor() {
-  limparFeedback();
+  const nome = novoSetor.nome.trim();
+  if (!nome) {
+    mostrarFeedback('Informe o nome do setor.', 'error');
+    return;
+  }
+  loadingState.setor = true;
   try {
-    await criarSetor({ nome: novoSetor.nome });
+    await criarSetor({ nome });
     novoSetor.nome = '';
-    mensagem.value = 'Setor cadastrado com sucesso.';
+    mostrarFeedback('Setor cadastrado com sucesso.');
     await carregarDados();
   } catch (e) {
-    erro.value = e.message;
+    mostrarFeedback(e.message, 'error');
+  } finally {
+    loadingState.setor = false;
   }
 }
 
 async function salvarPrioridade() {
-  limparFeedback();
+  const descricao = novaPrioridade.descricao.trim();
+  const tempo = Number(novaPrioridade.tempo_estimado_horas);
+  if (!descricao) {
+    mostrarFeedback('Informe a descrição da prioridade.', 'error');
+    return;
+  }
+  if (!Number.isFinite(tempo) || tempo < 1) {
+    mostrarFeedback('Tempo estimado deve ser maior que zero.', 'error');
+    return;
+  }
+  loadingState.prioridade = true;
   try {
     await criarPrioridade({
-      descricao: novaPrioridade.descricao,
-      tempo_estimado_horas: Number(novaPrioridade.tempo_estimado_horas),
+      descricao,
+      tempo_estimado_horas: tempo,
     });
     novaPrioridade.descricao = '';
     novaPrioridade.tempo_estimado_horas = 1;
-    mensagem.value = 'Prioridade cadastrada com sucesso.';
+    mostrarFeedback('Prioridade cadastrada com sucesso.');
     await carregarDados();
   } catch (e) {
-    erro.value = e.message;
+    mostrarFeedback(e.message, 'error');
+  } finally {
+    loadingState.prioridade = false;
   }
 }
 
 async function salvarChamado() {
-  limparFeedback();
+  if (!novoChamado.setor_id || !novoChamado.prioridade_id) {
+    mostrarFeedback('Selecione setor e prioridade.', 'error');
+    return;
+  }
+  const descricao = novoChamado.descricao_problema.trim();
+  if (descricao.length < 5) {
+    mostrarFeedback('A descrição do problema deve ter ao menos 5 caracteres.', 'error');
+    return;
+  }
+  loadingState.chamado = true;
   try {
     await abrirChamado({
       setor_id: Number(novoChamado.setor_id),
       prioridade_id: Number(novoChamado.prioridade_id),
-      descricao_problema: novoChamado.descricao_problema,
+      descricao_problema: descricao,
     });
     novoChamado.setor_id = '';
     novoChamado.prioridade_id = '';
     novoChamado.descricao_problema = '';
-    mensagem.value = 'Chamado aberto com sucesso.';
+    mostrarFeedback('Chamado aberto com sucesso.');
     await carregarDados();
   } catch (e) {
-    erro.value = e.message;
+    mostrarFeedback(e.message, 'error');
+  } finally {
+    loadingState.chamado = false;
   }
 }
 
 async function fazerCheckIn(id) {
-  limparFeedback();
+  loadingState.checkin[id] = true;
   try {
     await iniciarChamado(id);
-    mensagem.value = 'Check-in realizado.';
+    mostrarFeedback('Chamado iniciado com sucesso.');
     await carregarDados();
   } catch (e) {
-    erro.value = e.message;
+    mostrarFeedback(e.message, 'error');
+  } finally {
+    loadingState.checkin[id] = false;
   }
 }
 
 async function fazerCheckOut(id) {
-  limparFeedback();
-  try {
+  const executar = async () => {
     const solucao = (solucaoPorChamado[id] ?? '').trim();
+    if (solucao.length < 5) {
+      mostrarFeedback('Descreva a solução com ao menos 5 caracteres.', 'error');
+      return;
+    }
+    loadingState.checkout[id] = true;
     await finalizarChamado(id, { solucao_breve: solucao });
     solucaoPorChamado[id] = '';
-    mensagem.value = 'Check-out realizado.';
+    mostrarFeedback('Finalizado com sucesso.');
     await carregarDados();
-  } catch (e) {
-    erro.value = e.message;
-  }
+  };
+  abrirConfirmacao('Finalizar chamado', 'Deseja realmente finalizar este chamado?', async () => {
+    try {
+      await executar();
+    } catch (e) {
+      mostrarFeedback(e.message, 'error');
+    } finally {
+      loadingState.checkout[id] = false;
+    }
+  });
 }
 
 async function cancelar(id) {
-  limparFeedback();
-  try {
+  const executar = async () => {
     const motivo = (motivoCancelamentoPorChamado[id] ?? '').trim();
+    if (motivo.length < 5) {
+      mostrarFeedback('Informe um motivo de cancelamento com ao menos 5 caracteres.', 'error');
+      return;
+    }
+    loadingState.cancelar[id] = true;
     await cancelarChamado(id, { motivo_cancelamento: motivo });
     motivoCancelamentoPorChamado[id] = '';
-    mensagem.value = 'Chamado cancelado com sucesso.';
+    mostrarFeedback('Chamado cancelado com sucesso.');
     await carregarDados();
-  } catch (e) {
-    erro.value = e.message;
-  }
+  };
+  abrirConfirmacao('Cancelar chamado', 'Deseja realmente cancelar este chamado?', async () => {
+    try {
+      await executar();
+    } catch (e) {
+      mostrarFeedback(e.message, 'error');
+    } finally {
+      loadingState.cancelar[id] = false;
+    }
+  });
 }
 
 function limparFiltros() {
@@ -192,24 +324,60 @@ function formatarData(data) {
   return new Date(data).toLocaleString('pt-BR');
 }
 
+function classeStatus(status) {
+  if (status === 'Aberto') return 'status-aberto';
+  if (status === 'Em Atendimento') return 'status-atendimento';
+  if (status === 'Finalizado') return 'status-finalizado';
+  return 'status-cancelado';
+}
+
+function slaAtrasado(chamado) {
+  return Number(chamado.sla_horas) > Number(chamado.tempo_estimado_horas);
+}
+
 onMounted(() => {
+  temaEscuro.value = localStorage.getItem('tema-atendimento') === 'dark';
+  aplicarTema();
   carregarDados();
 });
 </script>
 
 <template>
   <main class="container">
-    <h1>Sistema de Controle de Atendimentos</h1>
+    <header class="page-header">
+      <h1>{{ appName }}</h1>
+      <p>Controle de SLA, status e fluxo de atendimento em um único painel.</p>
+      <button type="button" class="theme-toggle" @click="alternarTema">
+        {{ temaEscuro ? 'Modo claro' : 'Modo dark' }}
+      </button>
+    </header>
 
-    <p v-if="loading">Carregando...</p>
-    <p v-if="erro" class="erro">{{ erro }}</p>
-    <p v-if="mensagem" class="sucesso">{{ mensagem }}</p>
+    <div v-if="feedback.show" class="toast" :class="feedback.type === 'error' ? 'toast-erro' : 'toast-sucesso'">
+      {{ feedback.text }}
+    </div>
 
-    <section class="grid">
+    <section class="kpis">
+      <article class="kpi-card">
+        <h3>Abertos</h3>
+        <strong>{{ indicadores.total_aberto }}</strong>
+      </article>
+      <article class="kpi-card">
+        <h3>Em atendimento</h3>
+        <strong>{{ indicadores.total_em_atendimento }}</strong>
+      </article>
+      <article class="kpi-card">
+        <h3>Atrasados</h3>
+        <strong class="kpi-alert">{{ indicadores.total_atrasados }}</strong>
+      </article>
+    </section>
+
+    <section class="grid section-space">
       <form class="card" @submit.prevent="salvarSetor">
         <h2>Cadastro de Setor</h2>
         <input v-model="novoSetor.nome" type="text" placeholder="Nome do setor" required />
-        <button type="submit">Salvar Setor</button>
+        <button type="submit" :disabled="loadingState.setor">
+          {{ loadingState.setor ? 'Salvando...' : 'Salvar Setor' }}
+        </button>
       </form>
 
       <form class="card" @submit.prevent="salvarPrioridade">
@@ -222,11 +390,13 @@ onMounted(() => {
           placeholder="Tempo estimado (h)"
           required
         />
-        <button type="submit">Salvar Prioridade</button>
+        <button type="submit" :disabled="loadingState.prioridade">
+          {{ loadingState.prioridade ? 'Salvando...' : 'Salvar Prioridade' }}
+        </button>
       </form>
     </section>
 
-    <form class="card" @submit.prevent="salvarChamado">
+    <form class="card section-space" @submit.prevent="salvarChamado">
       <h2>Abertura de Chamado</h2>
       <select v-model="novoChamado.setor_id" required>
         <option value="">Selecione o setor</option>
@@ -247,10 +417,12 @@ onMounted(() => {
         placeholder="Descrição do problema"
         required
       />
-      <button type="submit">Abrir Chamado</button>
+      <button type="submit" :disabled="loadingState.chamado">
+        {{ loadingState.chamado ? 'Abrindo...' : 'Abrir Chamado' }}
+      </button>
     </form>
 
-    <section class="card">
+    <section class="card section-space">
       <h2>Chamados</h2>
       <div class="filtros">
         <select v-model="filtros.status">
@@ -289,7 +461,9 @@ onMounted(() => {
           <option :value="20">20 por página</option>
           <option :value="50">50 por página</option>
         </select>
-        <button type="button" @click="aplicarFiltros">Aplicar filtros</button>
+        <button type="button" @click="aplicarFiltros" :disabled="loadingState.filtro">
+          {{ loadingState.filtro ? 'Carregando...' : 'Aplicar filtros' }}
+        </button>
         <button type="button" @click="limparFiltros">Limpar</button>
       </div>
 
@@ -313,8 +487,16 @@ onMounted(() => {
               <td>{{ chamado.id }}</td>
               <td>{{ chamado.setor_nome }}</td>
               <td>{{ chamado.prioridade_descricao }}</td>
-              <td>{{ chamado.status }}</td>
-              <td>{{ chamado.sla_horas }}</td>
+              <td>
+                <span class="status-chip" :class="classeStatus(chamado.status)">
+                  {{ chamado.status }}
+                </span>
+              </td>
+              <td>
+                <span :class="slaAtrasado(chamado) ? 'sla-atrasado' : 'sla-ok'">
+                  {{ chamado.sla_horas }} / {{ chamado.tempo_estimado_horas }}h
+                </span>
+              </td>
               <td>{{ formatarData(chamado.data_abertura) }}</td>
               <td>{{ formatarData(chamado.data_inicio_atendimento) }}</td>
               <td>{{ formatarData(chamado.data_finalizacao) }}</td>
@@ -324,7 +506,7 @@ onMounted(() => {
                   @click="fazerCheckIn(chamado.id)"
                   :disabled="chamado.status !== 'Aberto'"
                 >
-                  Check-in
+                  {{ loadingState.checkin[chamado.id] ? 'Iniciando...' : 'Check-in' }}
                 </button>
                 <input
                   v-model="solucaoPorChamado[chamado.id]"
@@ -335,9 +517,9 @@ onMounted(() => {
                 <button
                   type="button"
                   @click="fazerCheckOut(chamado.id)"
-                  :disabled="chamado.status !== 'Em Atendimento'"
+                  :disabled="chamado.status !== 'Em Atendimento' || loadingState.checkout[chamado.id]"
                 >
-                  Check-out
+                  {{ loadingState.checkout[chamado.id] ? 'Finalizando...' : 'Check-out' }}
                 </button>
                 <input
                   v-model="motivoCancelamentoPorChamado[chamado.id]"
@@ -348,13 +530,13 @@ onMounted(() => {
                 <button
                   type="button"
                   @click="cancelar(chamado.id)"
-                  :disabled="!['Aberto', 'Em Atendimento'].includes(chamado.status)"
+                  :disabled="!['Aberto', 'Em Atendimento'].includes(chamado.status) || loadingState.cancelar[chamado.id]"
                 >
-                  Cancelar
+                  {{ loadingState.cancelar[chamado.id] ? 'Cancelando...' : 'Cancelar' }}
                 </button>
               </td>
             </tr>
-            <tr v-if="!chamados.length">
+            <tr v-if="semChamados">
               <td colspan="9">Nenhum chamado cadastrado.</td>
             </tr>
           </tbody>
@@ -373,5 +555,18 @@ onMounted(() => {
         </button>
       </div>
     </section>
+
+    <div v-if="confirmModal.show" class="modal-backdrop">
+      <div class="modal-card">
+        <h3>{{ confirmModal.title }}</h3>
+        <p>{{ confirmModal.text }}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" @click="fecharConfirmacao">Voltar</button>
+          <button type="button" @click="confirmarAcao" :disabled="confirmModal.loading">
+            {{ confirmModal.loading ? 'Processando...' : 'Confirmar' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </main>
 </template>

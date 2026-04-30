@@ -72,6 +72,10 @@ export function listarChamados(filters = {}) {
   return requestWithMeta(`/chamados${qs ? `?${qs}` : ''}`);
 }
 
+export function obterIndicadores() {
+  return request('/chamados/indicadores');
+}
+
 export function abrirChamado(data) {
   return request('/chamados', { method: 'POST', body: JSON.stringify(data) });
 }
