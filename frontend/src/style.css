@@ -55,6 +55,9 @@ body {
   width: fit-content;
   margin-top: 12px;
   background: #39445a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .section-space {
@@ -242,6 +245,11 @@ th {
   background: #ffe8eb;
   border-radius: 8px;
   padding: 3px 8px;
+}
+
+.sla-ok small,
+.sla-atrasado small {
+  font-weight: 600;
 }
 
 .toast {

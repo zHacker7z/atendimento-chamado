@@ -335,6 +335,13 @@ function slaAtrasado(chamado) {
   return Number(chamado.sla_horas) > Number(chamado.tempo_estimado_horas);
 }
 
+function formatarDuracaoHoras(valorHoras) {
+  const totalMinutos = Math.max(Math.round(Number(valorHoras) * 60), 0);
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
+  return `${horas}h ${String(minutos).padStart(2, '0')}m`;
+}
+
 onMounted(() => {
   temaEscuro.value = localStorage.getItem('tema-atendimento') === 'dark';
   aplicarTema();
@@ -348,6 +355,7 @@ onMounted(() => {
       <h1>{{ appName }}</h1>
       <p>Controle de SLA, status e fluxo de atendimento em um único painel.</p>
       <button type="button" class="theme-toggle" @click="alternarTema">
+        <span aria-hidden="true">{{ temaEscuro ? '☀️' : '🌙' }}</span>
         {{ temaEscuro ? 'Modo claro' : 'Modo dark' }}
       </button>
     </header>
@@ -494,7 +502,10 @@ onMounted(() => {
               </td>
               <td>
                 <span :class="slaAtrasado(chamado) ? 'sla-atrasado' : 'sla-ok'">
-                  {{ chamado.sla_horas }} / {{ chamado.tempo_estimado_horas }}h
+                  {{ formatarDuracaoHoras(chamado.sla_horas) }} de
+                  {{ formatarDuracaoHoras(chamado.tempo_estimado_horas) }}
+                  <small v-if="slaAtrasado(chamado)"> (atrasado)</small>
+                  <small v-else> (dentro do prazo)</small>
                 </span>
               </td>
               <td>{{ formatarData(chamado.data_abertura) }}</td>
