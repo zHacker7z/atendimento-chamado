@@ -1,0 +1,357 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .backdrop {
+    min-height: 600px;
+    background: #0f1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Sora', sans-serif;
+    padding: 24px;
+  }
+
+  .modal {
+    background: #181c27;
+    border: 1px solid #2a2f42;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #1f2437;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-left { display: flex; flex-direction: column; gap: 6px; }
+
+  .ticket-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7fad;
+    letter-spacing: 0.04em;
+  }
+
+  .ticket-badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #3b82f6;
+  }
+
+  .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e8ecf5;
+    line-height: 1.3;
+    max-width: 340px;
+  }
+
+  .close-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #4a5270;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .close-btn:hover { background: #1f2437; color: #9ba8c9; }
+
+  .status-bar {
+    padding: 12px 24px;
+    background: #13162090;
+    border-bottom: 1px solid #1f2437;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  .badge-warning {
+    background: #2d2200;
+    color: #f5a623;
+    border: 1px solid #3d3000;
+  }
+  .badge-warning::before { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #f5a623; }
+
+  .badge-danger {
+    background: #2a1020;
+    color: #f06292;
+    border: 1px solid #3a1830;
+  }
+  .badge-danger::before { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #f06292; }
+
+  .badge-sector {
+    background: #0d1f35;
+    color: #60a5fa;
+    border: 1px solid #132a47;
+  }
+
+  .divider-dot { color: #2a2f42; font-size: 14px; }
+
+  .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .info-card {
+    background: #13162090;
+    border: 1px solid #1f2437;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+
+  .info-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: #4a5270;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .info-value {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9ba8c9;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .info-value.pending { color: #4a5270; font-style: italic; font-family: 'Sora', sans-serif; font-size: 11px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #4a5270;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    background: #131620;
+    border: 1px solid #1f2437;
+    border-radius: 10px;
+    color: #c5cde0;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    resize: none;
+    transition: border-color 0.15s, background 0.15s;
+    outline: none;
+    line-height: 1.6;
+  }
+
+  textarea:focus, input[type="text"]:focus {
+    border-color: #3b82f6;
+    background: #10131e;
+  }
+
+  textarea::placeholder, input::placeholder { color: #383e55; }
+
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #1f2437;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .btn-group { display: flex; gap: 6px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: #4a5270;
+    border: 1px solid #1f2437;
+  }
+  .btn-ghost:hover { background: #1f2437; color: #9ba8c9; border-color: #2a3050; }
+
+  .btn-secondary {
+    background: #1a2040;
+    color: #60a5fa;
+    border: 1px solid #1f2d52;
+  }
+  .btn-secondary:hover { background: #1f2a55; border-color: #2a3a70; }
+
+  .btn-primary {
+    background: #3b82f6;
+    color: #fff;
+    border: 1px solid #3b82f6;
+  }
+  .btn-primary:hover { background: #2563eb; border-color: #2563eb; }
+
+  .btn-success {
+    background: #064e2e;
+    color: #4ade80;
+    border: 1px solid #0d5c38;
+  }
+  .btn-success:hover { background: #075e38; }
+
+  .btn-danger {
+    background: transparent;
+    color: #f87171;
+    border: 1px solid #2a1820;
+  }
+  .btn-danger:hover { background: #2a1820; }
+
+  .btn svg { flex-shrink: 0; }
+
+  .sla-bar-wrap {
+    background: #131620;
+    border: 1px solid #1f2437;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sla-label { font-size: 11px; color: #4a5270; white-space: nowrap; font-weight: 500; }
+
+  .sla-track {
+    flex: 1;
+    height: 4px;
+    background: #1f2437;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .sla-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f5a623 0%, #f06060 100%);
+    border-radius: 99px;
+    width: 72%;
+    transition: width 0.4s;
+  }
+
+  .sla-pct { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #f5a623; font-weight: 500; white-space: nowrap; }
+</style>
+
+<div class="backdrop">
+  <div class="modal">
+
+    <div class="modal-header">
+      <div class="header-left">
+        <span class="ticket-badge">CHAMADO #5</span>
+        <h2 class="modal-title">Instabilidade no relatório de fechamento diário</h2>
+      </div>
+      <button class="close-btn" onclick="this.closest('.modal').style.opacity='0.3'">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="status-bar">
+      <span class="badge badge-warning">Em atendimento</span>
+      <span class="divider-dot">·</span>
+      <span class="badge badge-danger">Crítica</span>
+      <span class="divider-dot">·</span>
+      <span class="badge badge-sector">Financeiro</span>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="info-grid">
+        <div class="info-card">
+          <span class="info-label">Abertura</span>
+          <span class="info-value">30/04 · 12:18</span>
+        </div>
+        <div class="info-card">
+          <span class="info-label">Início</span>
+          <span class="info-value">30/04 · 13:18</span>
+        </div>
+        <div class="info-card">
+          <span class="info-label">Finalização</span>
+          <span class="info-value pending">— pendente</span>
+        </div>
+      </div>
+
+      <div class="sla-bar-wrap">
+        <span class="sla-label">SLA consumido</span>
+        <div class="sla-track"><div class="sla-fill"></div></div>
+        <span class="sla-pct">72%</span>
+      </div>
+
+      <div>
+        <p class="section-label">Solução aplicada</p>
+        <textarea rows="3" placeholder="Descreva a solução técnica aplicada...">solucao tecnica aplicada</textarea>
+      </div>
+
+      <div>
+        <p class="section-label">Motivo de cancelamento</p>
+        <input type="text" placeholder="Informe o motivo (caso cancele)" />
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <div class="btn-group">
+        <button class="btn btn-ghost">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Fechar
+        </button>
+        <button class="btn btn-danger">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Cancelar
+        </button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-secondary">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3.5 3.5L11 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Salvar solução
+        </button>
+        <button class="btn btn-ghost">Iniciar atendimento</button>
+        <button class="btn btn-success">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3.5 3.5L11 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Finalizar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

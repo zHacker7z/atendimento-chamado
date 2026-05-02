@@ -1,3 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
 }
@@ -10,7 +16,7 @@
   --border: #dae2ee;
 }
 
-[data-theme='dark'] {
+[data-theme="dark"] {
   --bg: linear-gradient(180deg, #101521 0%, #161d2b 100%);
   --card-bg: #1e2737;
   --text: #e8edf8;
@@ -20,10 +26,12 @@
 
 body {
   margin: 0;
-  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-family: "Sora", Arial, Helvetica, sans-serif;
   background: var(--bg);
   color: var(--text);
-  transition: background 0.35s ease, color 0.35s ease;
+  transition:
+    background 0.35s ease,
+    color 0.35s ease;
 }
 
 #app {
@@ -59,7 +67,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
 }
 
 .section-space {
@@ -78,7 +90,10 @@ body {
   border-radius: 14px;
   padding: 18px;
   box-shadow: 0 10px 24px rgba(9, 29, 68, 0.06);
-  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
 }
 
 form.card,
@@ -94,8 +109,8 @@ h2 {
   color: #11203a;
 }
 
-[data-theme='dark'] h2,
-[data-theme='dark'] .page-header h1 {
+[data-theme="dark"] h2,
+[data-theme="dark"] .page-header h1 {
   color: #f3f7ff;
 }
 
@@ -107,7 +122,11 @@ button {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid #c5d0de;
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+  font-family: "Sora", sans-serif;
 }
 
 button {
@@ -117,6 +136,7 @@ button {
   cursor: pointer;
   font-weight: 600;
   transition: 0.2s ease;
+  font-family: "Sora", sans-serif;
 }
 
 button:hover:not(:disabled) {
@@ -210,7 +230,9 @@ th {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
-  transition: background-color 0.35s ease, border-color 0.35s ease;
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease;
 }
 
 .kpi-card h3 {
@@ -264,9 +286,9 @@ th {
 .sla-atrasado {
   color: #c31b2c;
   font-weight: 700;
-  background: #ffe8eb;
-  border-radius: 8px;
-  padding: 3px 8px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 .sla-ok small,
@@ -303,51 +325,83 @@ th {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(7, 12, 22, 0.55);
+  background: rgba(15, 17, 23, 0.85);
+  backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
-  z-index: 30;
+  z-index: 50;
 }
 
 .modal-card {
-  width: min(440px, 92vw);
-  background: var(--card-bg);
-  border: 1px solid var(--border);
+  width: min(880px, 94vw);
+  background: #181c27;
+  border: 1px solid #2a2f42;
   border-radius: 14px;
-  padding: 18px;
+  padding: 32px;
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28);
 }
 
 .modal-large {
-  width: min(760px, 94vw);
+  width: min(880px, 94vw);
 }
 
 .modal-card h3 {
   margin: 0 0 8px;
+  color: #e8ecf5;
+  font-family: "Sora", sans-serif;
 }
 
 .modal-card p {
   margin: 0 0 16px;
-  color: var(--muted);
+  color: #9ba8c9;
+  font-family: "Sora", sans-serif;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 16px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.btn-success {
+  background: #3b82f6;
+  color: #fff;
+  border: 1px solid #3b82f6;
+  font-family: "Sora", sans-serif;
+  font-weight: 600;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
 }
 
 .btn-secondary {
-  background: #727e95;
+  background: #1a2040;
+  color: #60a5fa;
+  border: 1px solid #1f2d52;
+  font-family: "Sora", sans-serif;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+  padding: 10px 12px;
+  border-radius: 8px;
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.btn-secondary:hover:not(:disabled) {
+  background: #1f2a55;
+  border-color: #2a3a70;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(96, 165, 250, 0.15);
+}
+
+.btn-secondary:disabled {
+  background: #141829;
+  border-color: #1a1f30;
+  color: #6b7fad;
+  cursor: not-allowed;
+  box-shadow: none;
 }
