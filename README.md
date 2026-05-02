@@ -2,6 +2,10 @@
 
 Sistema de controle de atendimentos desenvolvido para gerenciar chamados de suporte, com foco em regras de negócio, SLA e organização do fluxo de atendimento.
 
+## Demonstração
+
+- https://youtu.be/aQtjF9ApdJ0
+
 ## Tecnologias usadas
 
 - Backend: PHP 8+ (API REST em PHP puro)
