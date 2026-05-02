@@ -1,92 +1,144 @@
 # Sistema de Controle de Atendimentos
 
-Projeto fullstack com backend em PHP 8+, PostgreSQL e frontend em Vue 3 (Vite + Composition API).
+Este é um sistema simples e funcional para gestão de chamados de suporte. Ele combina um backend em PHP com um frontend moderno em Vue 3, permitindo controlar setor, prioridade, SLA e fluxo de atendimento.
 
-## Estrutura
+## Tecnologias usadas
 
-- `api/`: API REST em PHP puro.
-- `api/database/schema.sql`: script de criação das tabelas.
-- `frontend/`: interface Vue.js.
+- Backend: PHP 8+ (API REST em PHP puro)
+- Banco de dados: PostgreSQL
+- Frontend: Vue 3 + Vite
+- UI/CSS: Tailwind CSS e estilos personalizados
+- Comunicação: Fetch API via endpoints REST
+- Ambiente de desenvolvimento: npm, Vite e servidor PHP embutido
 
-## Banco de dados (PostgreSQL)
+## Como o sistema funciona
 
-1. Crie um banco chamado `atendimento`.
-2. Execute o script:
+O sistema permite:
+
+- cadastrar setores e prioridades;
+- abrir chamados com setor, prioridade e descrição do problema;
+- iniciar o atendimento de um chamado aberto;
+- finalizar chamados já em atendimento;
+- cancelar chamados abertos ou em atendimento;
+- calcular SLA em horas e identificar chamados atrasados;
+- filtrar e paginar a lista de chamados.
+
+No frontend, o usuário vê uma lista de chamados e pode abrir os detalhes do chamado com um duplo clique. No modal de detalhes é possível iniciar atendimento, salvar solução, finalizar ou cancelar o chamado.
+
+## Estrutura do projeto
+
+- `api/` – backend em PHP com endpoints REST.
+- `api/database/schema.sql` – script para criar as tabelas.
+- `api/database/seed.sql` – dados iniciais para teste.
+- `frontend/` – aplicação Vue 3 usando Vite.
+
+## Pré-requisitos
+
+Antes de executar o sistema, instale estes itens:
+
+- PHP 8+
+- PostgreSQL
+- Node.js 18+ (ou versão compatível com Vite)
+- npm
+
+## Passo a passo para rodar localmente
+
+### 1. Configure o banco de dados
+
+1. Crie um banco PostgreSQL chamado `atendimento`.
+2. Execute o script de criação das tabelas:
 
 ```sql
 \i api/database/schema.sql
 ```
 
-3. (Opcional) Popule dados iniciais para homologação:
+3. (Opcional) Popule dados de exemplo:
 
 ```sql
 \i api/database/seed.sql
 ```
 
-## Backend (PHP)
+### 2. Configure o backend
 
-1. Configure variáveis de ambiente (copie `api/.env.example` para `.env` no seu ambiente de execução).
-2. Defina:
-   - `DB_HOST`
-   - `DB_PORT`
-   - `DB_NAME`
-   - `DB_USER`
-   - `DB_PASS`
-3. Suba o servidor PHP na pasta `api`:
+1. Vá para a pasta do backend:
+
+```bash
+cd api
+```
+
+2. Copie o arquivo de ambiente de exemplo:
+
+```bash
+copy .env.example .env
+```
+
+3. Atualize o arquivo `.env` com as credenciais do PostgreSQL:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=atendimento
+DB_USER=seu_usuario
+DB_PASS=sua_senha
+```
+
+4. Inicie o servidor PHP:
 
 ```bash
 php -S localhost:8000 -t api
 ```
 
-## Frontend (Vue + Vite)
+Se tudo estiver correto, a API ficará disponível em `http://localhost:8000`.
 
-1. No `frontend`, configure o endpoint da API:
+### 3. Configure o frontend
+
+1. Entre na pasta do frontend:
 
 ```bash
-# frontend/.env
-VITE_API_URL=http://localhost:8000
+cd frontend
 ```
 
-Se não definir `VITE_API_URL`, o frontend usa `/api` com proxy do Vite para `http://127.0.0.1:8000`.
-
-2. Execute:
+2. Instale as dependências:
 
 ```bash
 npm install
+```
+
+3. Crie ou edite o arquivo `.env` com o URL da API:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+4. Inicie a aplicação frontend:
+
+```bash
 npm run dev
 ```
 
-## Regras implementadas
+5. Abra o navegador no endereço exibido pelo Vite (geralmente `http://localhost:5173`).
 
-- Cadastro de setores e prioridades.
-- Abertura de chamado com status inicial fixo em `Aberto`.
-- Check-in:
-  - define `data_inicio_atendimento`;
-  - bloqueia chamados `Finalizado` e `Cancelado`;
-  - evita check-in duplicado.
-- Check-out:
-  - exige chamado já iniciado;
-  - exige `solucao_breve`;
-  - define `data_finalizacao` e status `Finalizado`.
-- Cancelamento:
-  - exige `motivo_cancelamento`;
-  - bloqueia cancelamento de chamados `Finalizado` e `Cancelado`;
-  - define status `Cancelado` e registra o motivo.
-- SLA:
-  - calculado no backend em horas (`sla_horas`);
-  - usa `data_inicio_atendimento` quando existir;
-  - para chamados abertos, considera tempo até o momento atual.
-- Filtros na listagem:
-  - `GET /chamados?status=...`
-  - `GET /chamados?setor_id=...`
-  - `GET /chamados?prioridade_id=...`
-  - combináveis entre si.
-- Paginação e ordenação:
-  - `GET /chamados?page=1&limit=10`
-  - `GET /chamados?order_by=data_abertura&order_dir=DESC`
-  - `order_by`: `id`, `status`, `data_abertura`, `data_inicio_atendimento`, `data_finalizacao`, `setor`, `prioridade`.
+> Se não configurar `VITE_API_URL`, o frontend usa `/api` e o proxy do Vite redireciona para `http://127.0.0.1:8000`.
 
-## Endpoints
+## Uso básico do sistema
+
+1. Abra o frontend no navegador.
+2. Crie setores e prioridades antes de abrir chamados.
+3. Abra um novo chamado selecionando setor, prioridade e descrevendo o problema.
+4. Na lista de chamados, clique duas vezes em um item para abrir o modal de detalhes.
+5. Inicie atendimento, registre solução ou cancele quando necessário.
+6. O SLA é calculado automaticamente e os chamados atrasados são destacados.
+
+## Regras principais implementadas
+
+- Chamado aberto inicia com status `Aberto`.
+- Você só pode iniciar atendimento em chamados `Aberto`.
+- Somente chamados em `Em Atendimento` podem ser finalizados.
+- Chamados `Finalizado` ou `Cancelado` não podem ser reabertos.
+- Cancelamento exige motivo e só funciona em chamados abertos ou em atendimento.
+- SLA é calculado em horas no backend e atualizado conforme o chamado está aberto.
+
+## Endpoints disponíveis
 
 - `GET /setores`
 - `POST /setores`
@@ -98,3 +150,5 @@ npm run dev
 - `POST /chamados/{id}/finalizar`
 - `POST /chamados/{id}/cancelar`
 - `POST /chamados/{id}/solucao`
+
+Este projeto é uma base de sistema de atendimento com foco em praticidade e controle. Ele pode ser estendido com autenticação, relatórios, notificações e mais validações de negócios.e
