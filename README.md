@@ -151,4 +151,4 @@ npm run dev
 - `POST /chamados/{id}/cancelar`
 - `POST /chamados/{id}/solucao`
 
-Este projeto é uma base de sistema de atendimento com foco em praticidade e controle. Ele pode ser estendido com autenticação, relatórios, notificações e mais validações de negócios.e
+Este projeto é uma base de sistema de atendimento com foco em praticidade e controle. Ele pode ser estendido com autenticação, relatórios, notificações e mais validações de negócios.
