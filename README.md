@@ -1,6 +1,6 @@
 # Sistema de Controle de Atendimentos
 
-Este é um sistema simples e funcional para gestão de chamados de suporte. Ele combina um backend em PHP com um frontend moderno em Vue 3, permitindo controlar setor, prioridade, SLA e fluxo de atendimento.
+Sistema de controle de atendimentos desenvolvido para gerenciar chamados de suporte, com foco em regras de negócio, SLA e organização do fluxo de atendimento.
 
 ## Tecnologias usadas
 
@@ -150,5 +150,12 @@ npm run dev
 - `POST /chamados/{id}/finalizar`
 - `POST /chamados/{id}/cancelar`
 - `POST /chamados/{id}/solucao`
+
+## Decisões técnicas
+
+- O backend foi desenvolvido em PHP puro para demonstrar domínio da linguagem e controle direto da lógica de negócio.
+- O frontend foi feito em Vue 3 para melhor organização da interface e reatividade.
+- O cálculo de SLA foi implementado no backend para garantir consistência independente do cliente.
+- A estrutura foi pensada para ser simples, mas facilmente escalável.
 
 Este projeto é uma base de sistema de atendimento com foco em praticidade e controle. Ele pode ser estendido com autenticação, relatórios, notificações e mais validações de negócios.
